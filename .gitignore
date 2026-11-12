@@ -1,0 +1,5 @@
+# Keep signing material and local build output out of version control.
+build/publish/
+build/backups/
+classes/
+dist/
