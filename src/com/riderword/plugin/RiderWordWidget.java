@@ -5,12 +5,14 @@ import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
+import com.intellij.openapi.wm.impl.status.WidgetEffectBoundsProvider;
 import com.intellij.ui.JBColor;
 import com.intellij.util.Consumer;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
@@ -18,9 +20,15 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.MouseInfo;
+import java.awt.Point;
+import java.awt.PointerInfo;
+import java.awt.Rectangle;
 import java.awt.Font;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
@@ -32,6 +40,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.Multiframe, com.intellij.openapi.wm.CustomStatusBarWidget {
 
     static final String ID = "RWord";
+    /** The Got preview shows EN+ even when the saved mode is still EN. */
+    public static int displayAfterModeClick(int savedMode, boolean previewing) {
+        return previewing || savedMode != WordState.ENGLISH ? WordState.ENGLISH : WordState.BOTH;
+    }
     /** Long text scrolls inside this width instead of growing the status bar. */
     private static final int TEXT_WIDTH = 480;
     private static final List<RiderWordWidget> LIVE = new CopyOnWriteArrayList<>();
@@ -95,7 +107,7 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
     }
 
     /** A clickable label that looks like plain status bar text. */
-    private final class WidgetComponent extends JPanel {
+    private final class WidgetComponent extends JPanel implements WidgetEffectBoundsProvider {
         private final JLabel reading = clickable("Word", false, e -> toggleReading());
         private final JLabel previous = clickable("‹", true, e -> step(-1));
         private final JLabel word = new JLabel();
@@ -140,6 +152,78 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             add(progress);
             add(Box.createHorizontalStrut(JBUI.scale(6)));
             add(copy);
+            followHover();
+        }
+
+        /** Status bar hover is one rectangle per widget. Return only the control under the pointer. */
+        @Override
+        public @NotNull Rectangle getWidgetEffectBounds() {
+            JComponent slot = currentSlot();
+            return slot == null ? new Rectangle() : new Rectangle(slot.getBounds());
+        }
+
+        private JComponent currentSlot() {
+            PointerInfo info = MouseInfo.getPointerInfo();
+            if (info == null) {
+                return null;
+            }
+            Point point = new Point(info.getLocation());
+            SwingUtilities.convertPointFromScreen(point, this);
+            return hoverSlot(SwingUtilities.getDeepestComponentAt(this, point.x, point.y));
+        }
+
+        private JComponent hoverSlot(Component hit) {
+            while (hit != null && hit != this) {
+                if (hit == word || hit == chinese || hit == middle || hit == scroller) {
+                    return scroller;
+                }
+                if (hit == reading || hit == auto || hit == previous || hit == next
+                        || hit == mode || hit == remembered || hit == copy) {
+                    return (JComponent) hit;
+                }
+                hit = hit.getParent();
+            }
+            return null;
+        }
+
+        private void followHover() {
+            MouseAdapter hover = new MouseAdapter() {
+                private JComponent slot;
+
+                private void update() {
+                    JComponent next = currentSlot();
+                    if (next != slot) {
+                        slot = next;
+                        repaint();
+                    }
+                }
+
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    update();
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    update();
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    update();
+                }
+            };
+            listen(this, hover);
+        }
+
+        private void listen(Component component, MouseAdapter hover) {
+            component.addMouseListener(hover);
+            component.addMouseMotionListener(hover);
+            if (component instanceof Container container) {
+                for (Component child : container.getComponents()) {
+                    listen(child, hover);
+                }
+            }
         }
 
         void refresh() {
@@ -201,9 +285,18 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
         }
 
         private void fitScroll() {
-            Dimension content = middle.getPreferredSize();
-            int width = Math.min(Math.max(content.width, 1), JBUI.scale(TEXT_WIDTH));
-            int height = Math.max(content.height, 1);
+            middle.setBorder(null);
+            Dimension text = middle.getPreferredSize();
+            Dimension arrow = previous.getPreferredSize();
+            int width = Math.min(Math.max(text.width, arrow.width), JBUI.scale(TEXT_WIDTH));
+            int height = Math.max(text.height, arrow.height);
+            int padX = Math.max(0, width - text.width) / 2;
+            int padY = Math.max(0, height - text.height) / 2;
+            if (padX > 0 || padY > 0) {
+                middle.setBorder(BorderFactory.createEmptyBorder(padY, padX, padY, padX));
+                width = Math.min(middle.getPreferredSize().width, JBUI.scale(TEXT_WIDTH));
+                height = middle.getPreferredSize().height;
+            }
             scroller.setPreferredSize(new Dimension(width, height));
             scroller.setMaximumSize(new Dimension(width, height));
             scroller.setMinimumSize(new Dimension(Math.min(width, JBUI.scale(120)), height));
@@ -230,9 +323,7 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             rememberConfirmation.cancel();
             store.move(direction);
             WordService.getInstance().remember();
-            if (direction > 0) {
-                speakAutomatically(before);
-            }
+            speakAutomatically(before);
             refreshAll();
         }
 
@@ -271,9 +362,11 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
         }
 
         private void cycleMode() {
-            rememberConfirmation.cancel();
             WordState state = WordState.getInstance();
-            state.displayMode = state.displayMode == WordState.ENGLISH ? WordState.BOTH : WordState.ENGLISH;
+            Entry entry = WordService.getInstance().store().current();
+            boolean previewing = rememberConfirmation.isPending(entry, state.displayMode);
+            rememberConfirmation.cancel();
+            state.displayMode = displayAfterModeClick(state.displayMode, previewing);
             refreshAll();
         }
 

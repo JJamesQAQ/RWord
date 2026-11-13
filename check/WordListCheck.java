@@ -1,6 +1,7 @@
 import com.riderword.plugin.AutoSpeak;
 import com.riderword.plugin.Entry;
 import com.riderword.plugin.RememberConfirmation;
+import com.riderword.plugin.RiderWordWidget;
 import com.riderword.plugin.WordState;
 import com.riderword.plugin.ParseResult;
 import com.riderword.plugin.ReviewHistory;
@@ -96,6 +97,12 @@ public final class WordListCheck {
         check(!confirmation.isPending(current, WordState.ENGLISH), "confirmed word is no longer pending");
         check(!confirmation.click(current, WordState.BOTH), "mode change starts a new confirmation");
         check(!confirmation.isPending(current, WordState.ENGLISH), "changing display mode cancels confirmation");
+        check(RiderWordWidget.displayAfterModeClick(WordState.ENGLISH, true) == WordState.ENGLISH,
+                "EN+ shown by the Got preview switches to EN");
+        check(RiderWordWidget.displayAfterModeClick(WordState.BOTH, false) == WordState.ENGLISH,
+                "EN+ switches to EN");
+        check(RiderWordWidget.displayAfterModeClick(WordState.ENGLISH, false) == WordState.BOTH,
+                "EN switches to EN+");
 
         for (int displayMode : new int[]{WordState.BOTH, WordState.ENGLISH}) {
             store.load(parsed.entries, 0, false, 42L, null);

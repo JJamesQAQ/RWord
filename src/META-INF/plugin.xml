@@ -10,14 +10,14 @@
             <li>Previous and next, with the current position shown as 3/48.</li>
             <li>The leftmost control switches between words and sentences. Sentence mode hides Got. A long line scrolls by dragging or the mouse wheel.</li>
             <li>Click the English word to hear it. On Windows, an en-US voice is used when available.</li>
-            <li>Auto reads the next word. Turn it off with the Auto switch.</li>
+            <li>Auto reads the word when you go to the previous or next one. Turn it off with the Auto switch.</li>
             <li>EN+ shows English and Chinese; EN shows English only.</li>
             <li>Got asks for confirmation, then moves the word to a copyable remembered list. Previous can bring it back with Undo.</li>
             <li>Browse in list order or in a stable random order.</li>
         </ul>
         <p>在 Rider 状态栏浏览你自己的词表或句子。中文由你提供，插件不联网、不上传内容。</p>
         <p>最左侧是 Word / Sentence，用来切换单词和句子。句子在设置里按「英文在上、中文在下、两组之间空一行」粘贴。句子模式没有 Got；一行太长时可以拖动或滚轮滑动。</p>
-        <p>点击英文可发音；Auto 开启时，下一个单词会自动朗读。EN+ 同时显示中英文，EN 只显示英文。Got 经确认后把单词移入可复制的已记住列表，点上一个后可用 Undo 恢复。</p>
+        <p>点击英文可发音；Auto 开启时，上一个和下一个都会自动朗读。EN+ 同时显示中英文，EN 只显示英文。Got 经确认后把单词移入可复制的已记住列表，点上一个后可用 Undo 恢复。</p>
         <p>Settings → RWord. One word per line: English, then a tab or |, then Chinese. Sentences: English lines, Chinese lines, then a blank line.</p>
     ]]></description>
     <change-notes><![CDATA[

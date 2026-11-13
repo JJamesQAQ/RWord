@@ -1,6 +1,6 @@
 package com.riderword.plugin;
 
-/** Decides when moving forward should start pronunciation. */
+/** Decides when a navigation step should start pronunciation. */
 public final class AutoSpeak {
 
     private AutoSpeak() {
