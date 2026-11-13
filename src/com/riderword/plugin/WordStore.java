@@ -12,7 +12,8 @@ public final class WordStore {
     private final List<Entry> entries = new ArrayList<>();
     private final List<Integer> order = new ArrayList<>();
     private final Set<String> remembered = new HashSet<>();
-    private final ReviewHistory history = new ReviewHistory();
+    // The word just marked remembered. The next "previous" shows it once; any other move drops it.
+    private Entry justRemembered;
     private boolean random;
     private int position;
     private long seed;
@@ -27,7 +28,7 @@ public final class WordStore {
         seed = savedSeed != 0 ? savedSeed : new Random().nextLong();
         rebuildOrder();
         position = indexOf(currentKey);
-        history.reset(entries.isEmpty() ? null : entries.get(order.get(position)));
+        justRemembered = null;
     }
 
     public boolean isEmpty() { return size() == 0; }
@@ -35,25 +36,27 @@ public final class WordStore {
     public int skipped() { return skipped; }
     public boolean isRandom() { return random; }
     public long seed() { return seed; }
-    public Entry current() { return history.current(); }
-    public boolean canGoBack() { return history.hasPrevious() || !isEmpty(); }
-    public boolean canGoForward() { return history.hasNext() || !isEmpty(); }
+    public Entry current() {
+        return order.isEmpty() ? null : entries.get(order.get(position));
+    }
+
+    public boolean canGoBack() { return justRemembered != null || !isEmpty(); }
+    public boolean canGoForward() { return !isEmpty(); }
 
     public boolean isCurrentRemembered() {
         return current() != null && remembered.contains(current().key());
     }
 
     public Entry move(int direction) {
-        if (direction < 0 && history.hasPrevious()) {
-            select(history.previous());
-        } else if (direction > 0 && history.hasNext()) {
-            select(history.next());
-        } else {
-            Entry candidate = nextActive(direction < 0 ? -1 : 1);
-            if (candidate != null) {
-                select(candidate);
-                history.visit(candidate);
-            }
+        if (direction < 0 && justRemembered != null) {
+            select(justRemembered);
+            justRemembered = null;
+            return current();
+        }
+        justRemembered = null;
+        Entry candidate = nextActive(direction < 0 ? -1 : 1);
+        if (candidate != null) {
+            select(candidate);
         }
         return current();
     }
@@ -64,9 +67,11 @@ public final class WordStore {
             return null;
         }
         remembered.add(removed.key());
+        justRemembered = removed;
         Entry next = nextActive(1);
-        select(next);
-        history.visit(next);
+        if (next != null) {
+            select(next);
+        }
         return removed;
     }
 
@@ -75,6 +80,7 @@ public final class WordStore {
         if (restored == null || !remembered.remove(restored.key())) {
             return null;
         }
+        justRemembered = null;
         select(restored);
         return restored;
     }
@@ -109,14 +115,14 @@ public final class WordStore {
         if (random == randomMode) {
             return;
         }
-        Entry current = current();
+        String key = current() == null ? "" : current().key();
         random = randomMode;
         if (random) {
             seed = new Random().nextLong();
         }
         rebuildOrder();
-        select(current);
-        history.reset(current);
+        position = indexOf(key);
+        justRemembered = null;
     }
 
     private Entry nextActive(int direction) {

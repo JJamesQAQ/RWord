@@ -37,7 +37,11 @@ public final class RiderWordConfigurable implements Configurable {
     @Override
     public void apply() {
         WordState state = WordState.getInstance();
-        state.wordList = panel.wordList();
+        String edited = panel.wordList();
+        if (!edited.equals(state.wordList)) {
+            state.currentKey = "";
+        }
+        state.wordList = edited;
         state.rememberedList = panel.rememberedList();
         state.random = panel.randomSelected();
         WordService.getInstance().reload();

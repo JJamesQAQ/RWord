@@ -33,6 +33,10 @@ public final class WordListCheck {
         check(store.current().word.equals("decay"), "starts at the first word");
         store.move(-1);
         check(store.current().word.equals("encapsulation"), "previous wraps to the end");
+        store.move(-1);
+        check(store.current().word.equals("abstraction"), "previous keeps walking backward");
+        store.move(1);
+        check(store.current().word.equals("encapsulation"), "next leaves the previous word");
         store.move(1);
         check(store.current().word.equals("decay"), "next wraps back to the start");
 
@@ -129,6 +133,14 @@ public final class WordListCheck {
         check(store.restoreCurrent().word.equals("decay"), "undo restores the displayed word");
         check(!store.isCurrentRemembered() && store.currentNumber() == 1 && store.size() == 3,
                 "undo returns the word to its original active position");
+
+        store.load(parsed.entries, 0, false, 42L, null);
+        store.dropCurrent();
+        check(store.move(-1).word.equals("decay") && store.isCurrentRemembered(),
+                "previous just after remember shows that word");
+        check(store.move(-1).word.equals("encapsulation") && !store.isCurrentRemembered(),
+                "another previous continues backward instead of jumping back");
+        check(store.move(-1).word.equals("abstraction"), "previous keeps moving after the remembered word");
 
         store.load(parsed.entries, 0, true, 42L, null);
         Entry randomRemembered = store.current();
