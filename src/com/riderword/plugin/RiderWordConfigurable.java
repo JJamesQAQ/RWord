@@ -21,7 +21,9 @@ public final class RiderWordConfigurable implements Configurable {
         panel = new SettingsPanel();
         WordState state = WordState.getInstance();
         ParseResult parsed = new WordListParser().parse(state.wordList);
-        panel.load(state.wordList, state.rememberedList, state.random, parsed.entries.size(), parsed.skipped);
+        ParseResult sentences = new SentenceParser().parse(state.sentenceList);
+        panel.load(state.wordList, state.rememberedList, state.random, parsed.entries.size(), parsed.skipped,
+                state.sentenceList, sentences.entries.size(), sentences.skipped);
         return panel.component();
     }
 
@@ -30,6 +32,7 @@ public final class RiderWordConfigurable implements Configurable {
         WordState state = WordState.getInstance();
         return panel != null
                 && (!panel.wordList().equals(state.wordList)
+                || !panel.sentenceList().equals(state.sentenceList)
                 || !panel.rememberedList().equals(state.rememberedList)
                 || panel.randomSelected() != state.random);
     }
@@ -41,12 +44,18 @@ public final class RiderWordConfigurable implements Configurable {
         if (!edited.equals(state.wordList)) {
             state.currentKey = "";
         }
+        String editedSentences = panel.sentenceList();
+        if (!editedSentences.equals(state.sentenceList)) {
+            state.sentenceKey = "";
+        }
         state.wordList = edited;
+        state.sentenceList = editedSentences;
         state.rememberedList = panel.rememberedList();
         state.random = panel.randomSelected();
         WordService.getInstance().reload();
-        WordStore store = WordService.getInstance().store();
-        panel.showSummary(store.size(), store.skipped());
+        panel.showSummary(WordService.getInstance().wordStore().size(), WordService.getInstance().wordStore().skipped());
+        panel.showSentenceSummary(WordService.getInstance().sentenceStore().size(),
+                WordService.getInstance().sentenceStore().skipped());
         RiderWordWidget.refreshAll();
     }
 
@@ -55,7 +64,9 @@ public final class RiderWordConfigurable implements Configurable {
         if (panel != null) {
             WordState state = WordState.getInstance();
             ParseResult parsed = new WordListParser().parse(state.wordList);
-            panel.load(state.wordList, state.rememberedList, state.random, parsed.entries.size(), parsed.skipped);
+            ParseResult sentences = new SentenceParser().parse(state.sentenceList);
+            panel.load(state.wordList, state.rememberedList, state.random, parsed.entries.size(), parsed.skipped,
+                    state.sentenceList, sentences.entries.size(), sentences.skipped);
         }
     }
 

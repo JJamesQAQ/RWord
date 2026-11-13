@@ -26,8 +26,10 @@ import java.nio.file.Path;
 public final class SettingsPanel {
 
     private final JBTextArea words = new JBTextArea(12, 60);
+    private final JBTextArea sentences = new JBTextArea(8, 60);
     private final JBTextArea remembered = new JBTextArea(6, 60);
     private final JBLabel summary = new JBLabel(" ");
+    private final JBLabel sentenceSummary = new JBLabel(" ");
     private final JBRadioButton sequential = new JBRadioButton("按词表顺序");
     private final JBRadioButton random = new JBRadioButton("随机顺序");
     private final TextFieldWithBrowseButton file = new TextFieldWithBrowseButton();
@@ -36,6 +38,9 @@ public final class SettingsPanel {
     public SettingsPanel() {
         words.setLineWrap(true);
         words.getEmptyText().setText("每行一个词：英文<Tab或|>中文，例如 decay\t腐烂；衰退");
+        sentences.setLineWrap(true);
+        sentences.setWrapStyleWord(true);
+        sentences.getEmptyText().setText("英文在上，中文在下，两组之间空一行");
         remembered.setLineWrap(true);
         remembered.getEmptyText().setText("点状态栏的“已记住”后，单词会出现在这里，可以直接复制");
 
@@ -66,9 +71,12 @@ public final class SettingsPanel {
                 .addComponentFillVertically(new JBScrollPane(words), 0)
                 .addComponent(summary)
                 .addLabeledComponent("从文件导入", fileRow)
-                .addLabeledComponent("浏览方式", modes)
+                .addLabeledComponent("词表浏览", modes)
                 .addComponent(new JBLabel("已记住（不再出现在状态栏，可在这里复制）"))
                 .addComponent(new JBScrollPane(remembered))
+                .addComponent(new JBLabel("句子（英文在上，中文在下，两组之间空一行）"))
+                .addComponent(new JBScrollPane(sentences))
+                .addComponent(sentenceSummary)
                 .getPanel();
     }
 
@@ -76,15 +84,22 @@ public final class SettingsPanel {
         return root;
     }
 
-    public void load(String wordList, String rememberedList, boolean randomMode, int count, int skipped) {
+    public void load(String wordList, String rememberedList, boolean randomMode, int count, int skipped,
+                     String sentenceList, int sentenceCount, int sentenceSkipped) {
         words.setText(wordList);
+        sentences.setText(sentenceList == null ? "" : sentenceList);
         remembered.setText(rememberedList == null ? "" : rememberedList);
         (randomMode ? random : sequential).setSelected(true);
         showSummary(count, skipped);
+        showSentenceSummary(sentenceCount, sentenceSkipped);
     }
 
     public String wordList() {
         return words.getText();
+    }
+
+    public String sentenceList() {
+        return sentences.getText();
     }
 
     public String rememberedList() {
@@ -99,6 +114,12 @@ public final class SettingsPanel {
         summary.setText(skipped == 0
                 ? "已载入 " + count + " 个词"
                 : "已载入 " + count + " 个词，跳过 " + skipped + " 行（空行不计）");
+    }
+
+    public void showSentenceSummary(int count, int skipped) {
+        sentenceSummary.setText(skipped == 0
+                ? "已载入 " + count + " 句"
+                : "已载入 " + count + " 句，跳过 " + skipped + " 组（缺英文或中文）");
     }
 
     private void importSelectedFile() {

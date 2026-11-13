@@ -17,7 +17,8 @@ RWord helps you review a personal vocabulary list without leaving Rider.
 - Use `Got` as a two-step confirmation before removing a word from the active list.
 - Review remembered words in Settings and copy them whenever needed.
 - Press previous to revisit a remembered word and use `Undo` to restore it to the active list.
-- Choose sequential or stable random browsing.
+- Choose sequential or stable random browsing for words.
+- Switch to sentences from the leftmost status-bar control. Paste English above Chinese, with a blank line between pairs. Sentence mode hides Got, stays in pasted order, and scrolls a line that does not fit.
 
 ### Privacy
 
@@ -30,6 +31,13 @@ Use one entry per line with a tab or `|` between the English word and its Chines
 ```text
 decay | 衰退；腐烂
 abstraction\t抽象
+```
+
+A sentence pair is one or more English lines, then the Chinese lines, then a blank line:
+
+```text
+Tesla self-driving now approved in Finland
+特斯拉自动驾驶现已获芬兰批准。
 ```
 
 ### Compatibility

@@ -13,7 +13,7 @@ public final class WidgetTooltipCheck {
                 "clickable", String.class, boolean.class, Consumer.class);
         factory.setAccessible(true);
         SwingUtilities.invokeAndWait(() -> {
-            for (String text : new String[]{"‹", "›", "EN", "EN+", "Got", "OK", "Undo", "Auto", "Off"}) {
+            for (String text : new String[]{"Word", "Sentence", "‹", "›", "EN", "EN+", "Got", "OK", "Undo", "Auto", "Off", "Copy"}) {
                 AtomicInteger clicks = new AtomicInteger();
                 try {
                     JLabel label = (JLabel) factory.invoke(null, text,

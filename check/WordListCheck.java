@@ -4,6 +4,7 @@ import com.riderword.plugin.RememberConfirmation;
 import com.riderword.plugin.WordState;
 import com.riderword.plugin.ParseResult;
 import com.riderword.plugin.ReviewHistory;
+import com.riderword.plugin.SentenceParser;
 import com.riderword.plugin.WordListParser;
 import com.riderword.plugin.WordStore;
 
@@ -155,7 +156,51 @@ public final class WordListCheck {
         check(!AutoSpeak.shouldSpeak(true, "one", "one"), "the same word is not spoken again");
         check(!AutoSpeak.shouldSpeak(true, "", ""), "an empty list does not auto speak");
 
-        System.out.println("All checks passed (parser, navigation, remembered words, progress, confirmation, undo history).");
+        ParseResult sentences = new SentenceParser().parse("""
+                In order to work through more of the Cybertruck order backlog, production will be extended through the end of summer 2027
+                为了消化更多的 Cybertruck 订单积压，生产将延长至 2027 年夏末。
+
+                We would be happy to take the compute back. No problem.
+                But I think the opposite is going to happen.
+                我们很乐意把算力拿回来。没问题。
+                但我认为接下来会发生相反的情况。
+
+                Much appreciated, Mississippi ❤️
+                非常感谢，密西西比 ❤️
+
+                Robotaxi works 168 hours a week
+                Robotaxi 每周运行 168 小时。
+
+                Only English
+                still English
+
+                In order to work through more of the Cybertruck order backlog, production will be extended through the end of summer 2027
+                重复的一句
+                """);
+        check(sentences.entries.size() == 4, "keeps four sentences, got " + sentences.entries.size());
+        check(sentences.skipped == 1, "skips a block with no Chinese, got " + sentences.skipped);
+        check(sentences.entries.get(0).chinese.equals("为了消化更多的 Cybertruck 订单积压，生产将延长至 2027 年夏末。"),
+                "pairs the Chinese line under the English");
+        check(sentences.entries.get(1).word.equals(
+                        "We would be happy to take the compute back. No problem. But I think the opposite is going to happen."),
+                "joins the English lines of one block");
+        check(sentences.entries.get(1).chinese.equals("我们很乐意把算力拿回来。没问题。 但我认为接下来会发生相反的情况。"),
+                "joins the Chinese lines of one block");
+        check(sentences.entries.get(2).word.endsWith("❤️"), "keeps an emoji on the English line");
+        check(sentences.entries.get(3).chinese.equals("Robotaxi 每周运行 168 小时。"),
+                "a Han character starts the Chinese half");
+        check(new SentenceParser().parse(null).entries.isEmpty(), "null sentence list is empty");
+        check(new SentenceParser().parse("\n\n").entries.isEmpty(), "blank sentence list is empty");
+
+        WordStore sentenceStore = new WordStore();
+        sentenceStore.load(sentences.entries, sentences.skipped, false, 1L, null);
+        check(sentenceStore.current().word.startsWith("In order to"), "sentences stay in pasted order");
+        sentenceStore.move(1);
+        check(sentenceStore.current().word.startsWith("We would be happy"), "next walks to the following sentence");
+        sentenceStore.load(sentences.entries, sentences.skipped, false, 1L, sentences.entries.get(3).key());
+        check(sentenceStore.current().chinese.startsWith("Robotaxi"), "a saved sentence key reopens on that sentence");
+
+        System.out.println("All checks passed (parser, navigation, remembered words, progress, confirmation, undo history, sentences).");
     }
 
     private static void check(boolean condition, String message) {

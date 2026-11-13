@@ -18,14 +18,19 @@ public final class WordState implements PersistentStateComponent<WordState> {
 
     public static final int BOTH = 0;
     public static final int ENGLISH = 1;
+    public static final int WORDS = 0;
+    public static final int SENTENCES = 1;
 
     public String wordList = "";
     public String rememberedList = "";
+    public String sentenceList = "";
     public int displayMode = BOTH;
+    public int reading = WORDS;
     public boolean random = false;
     public boolean autoSpeak = true;
     public long seed = 0L;
     public String currentKey = "";
+    public String sentenceKey = "";
 
     public static WordState getInstance() {
         return ApplicationManager.getApplication().getService(WordState.class);
