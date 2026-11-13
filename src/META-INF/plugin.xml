@@ -16,7 +16,7 @@
         </ul>
         <p>在 Rider 状态栏浏览你自己的词表。中文由你提供，插件不联网、不上传词表。</p>
         <p>点击英文可发音；Auto 开启时，下一个单词会自动朗读。EN+ 同时显示中英文，EN 只显示英文。Got 经确认后把单词移入可复制的已记住列表，点上一个后可用 Undo 恢复。</p>
-        <p>Settings → Tools → RWord. One entry per line: English, then a tab or |, then Chinese.</p>
+        <p>Settings → RWord. One entry per line: English, then a tab or |, then Chinese.</p>
     ]]></description>
     <change-notes><![CDATA[
         <ul>
@@ -31,7 +31,8 @@
     <idea-version since-build="262" until-build="262.*"/>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationConfigurable groupId="tools"
+        <applicationConfigurable groupId="root"
+                                groupWeight="4"
                                 instance="com.riderword.plugin.RiderWordConfigurable"
                                 id="com.riderword.plugin.settings"
                                 displayName="RWord"/>

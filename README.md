@@ -6,7 +6,7 @@
 
 ## 使用
 
-Settings → Tools → RWord：
+Settings → RWord：
 
 - 词表每行一个词，`英文<Tab>中文` 或 `英文 | 中文`
 - 也可以选择 `.txt` / `.csv` 文件后点“导入文件”
@@ -23,7 +23,7 @@ Settings → Tools → RWord：
 
 ![设置页](rword-settings.png)
 
-状态栏从左到右是上一个、当前词、下一个、中英显示、记住、进度和自动朗读：
+状态栏从左到右是自动朗读、上一个、当前词、下一个、中英显示、记住和进度：
 
 ![状态栏](rword-status-bar.png)
 

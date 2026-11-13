@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.JComponent;
 
-/** Settings | Tools | RiderWord. */
+/** Settings | RWord. A top-level page, not a child of Tools. */
 public final class RiderWordConfigurable implements Configurable {
 
     private SettingsPanel panel;

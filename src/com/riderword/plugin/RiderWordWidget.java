@@ -109,6 +109,8 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             onClick(middle, e -> speak());
             onClick(word, e -> speak());
             onClick(chinese, e -> speak());
+            add(auto);
+            add(Box.createHorizontalStrut(JBUI.scale(6)));
             add(previous);
             add(Box.createHorizontalStrut(JBUI.scale(4)));
             add(middle);
@@ -119,8 +121,6 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             add(remembered);
             add(Box.createHorizontalStrut(JBUI.scale(6)));
             add(progress);
-            add(Box.createHorizontalStrut(JBUI.scale(6)));
-            add(auto);
         }
 
         void refresh() {
