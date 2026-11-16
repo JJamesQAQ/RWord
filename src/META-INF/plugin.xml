@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.riderword.plugin</id>
     <name>RWord</name>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
     <vendor>RWord</vendor>
     <description><![CDATA[
         <p>Browse your own vocabulary while coding. RWord shows one of your entries in Rider’s status bar.</p>
@@ -22,7 +22,10 @@
     ]]></description>
     <change-notes><![CDATA[
         <ul>
-            <li>0.1.1: Renamed the Marketplace display name to RWord.</li>
+            <li>0.2.0: Browse sentences beside the word list. The leftmost control switches Word and Sentence. Sentence mode hides Got, stays in pasted order, and scrolls a long line.</li>
+            <li>Settings is on the left-nav root. Auto sits to the left of the arrows.</li>
+            <li>Previous reads the entry it lands on. Drop the Got preview by choosing EN. Hover highlights only the control under the pointer.</li>
+            <li>Remembering a word or editing the list no longer skips the next entry.</li>
         </ul>
     ]]></change-notes>
 

@@ -49,5 +49,5 @@ python build/run-tooltip-check.py
 
 ## 安装
 
-Settings → Plugins → 齿轮 → Install Plugin from Disk，选择 `dist/RWord-0.1.1-signed.zip`，重启 Rider。
+Settings → Plugins → 齿轮 → Install Plugin from Disk，选择 `dist/RWord-0.2.0-signed.zip`，重启 Rider。
 仅适用于 Rider 2026.2。
