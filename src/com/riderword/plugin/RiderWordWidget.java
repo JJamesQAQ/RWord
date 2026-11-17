@@ -21,20 +21,26 @@ import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.PointerInfo;
 import java.awt.Rectangle;
-import java.awt.Font;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Status bar control: word/sentence switch, previous, the text, next. */
 public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.Multiframe, com.intellij.openapi.wm.CustomStatusBarWidget {
@@ -46,6 +52,7 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
     }
     /** Long text scrolls inside this width instead of growing the status bar. */
     private static final int TEXT_WIDTH = 480;
+    private static final Pattern WORD_PATTERN = Pattern.compile("[\\p{IsLatin}0-9]+(?:['’\\-][\\p{IsLatin}0-9]+)*");
     private static final List<RiderWordWidget> LIVE = new CopyOnWriteArrayList<>();
 
     private final Project project;
@@ -94,7 +101,7 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
 
     /**
      * The status bar keeps the component it first created, so changing the word has to update
-     * that component directly. updateWidget() alone leaves the old "添加词表" label in place.
+     * that component directly. updateWidget() alone leaves the old "Add words" label in place.
      */
     public static void refreshAll() {
         ApplicationManager.getApplication().invokeLater(() -> {
@@ -108,15 +115,17 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
 
     /** A clickable label that looks like plain status bar text. */
     private final class WidgetComponent extends JPanel implements WidgetEffectBoundsProvider {
+        private final JLabel settings = clickable("Set", false, e -> RiderWordConfigurable.open());
         private final JLabel reading = clickable("Word", false, e -> toggleReading());
         private final JLabel previous = clickable("‹", true, e -> step(-1));
-        private final JLabel word = new JLabel();
+        private final SentenceWordLabel word = new SentenceWordLabel();
         private final JLabel chinese = new JLabel();
         private final JLabel next = clickable("›", true, e -> step(1));
         private final JLabel mode = clickable("EN+", false, e -> cycleMode());
         private final JLabel remembered = clickable("Got", false, e -> markRemembered());
         private final JLabel progress = new JLabel();
         private final JLabel copy = clickable("Copy", false, e -> copyEnglish());
+        private final JLabel favorite = clickable("Fav", false, e -> toggleFavorite());
         private final JLabel auto = clickable("Auto", false, e -> toggleAuto());
         private final JPanel middle = column(word, chinese);
         private final JScrollPane scroller = scroller(middle);
@@ -130,12 +139,21 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             word.setFont(word.getFont().deriveFont(Font.BOLD, word.getFont().getSize2D() + 2f));
             chinese.setForeground(JBColor.GRAY);
             progress.setForeground(JBColor.GRAY);
-            onClick(middle, e -> speak());
-            onClick(word, e -> speak());
+            onClick(word, this::clickWord);
             onClick(chinese, e -> speak());
+            onClick(middle, e -> {
+                if (e.getSource() == middle) {
+                    speak();
+                }
+            });
+            onClick(scroller.getViewport(), e -> speak());
             bindScroll(word);
             bindScroll(chinese);
             bindScroll(middle);
+            bindScroll(scroller.getViewport());
+            scroller.getViewport().addChangeListener(e -> word.clearHover());
+            add(settings);
+            add(Box.createHorizontalStrut(JBUI.scale(6)));
             add(reading);
             add(Box.createHorizontalStrut(JBUI.scale(6)));
             add(auto);
@@ -152,6 +170,8 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             add(progress);
             add(Box.createHorizontalStrut(JBUI.scale(6)));
             add(copy);
+            add(Box.createHorizontalStrut(JBUI.scale(6)));
+            add(favorite);
             followHover();
         }
 
@@ -177,8 +197,8 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
                 if (hit == word || hit == chinese || hit == middle || hit == scroller) {
                     return scroller;
                 }
-                if (hit == reading || hit == auto || hit == previous || hit == next
-                        || hit == mode || hit == remembered || hit == copy) {
+                if (hit == settings || hit == reading || hit == auto || hit == previous || hit == next
+                        || hit == mode || hit == remembered || hit == copy || hit == favorite) {
                     return (JComponent) hit;
                 }
                 hit = hit.getParent();
@@ -244,12 +264,16 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             remembered.setText(reviewingRemembered ? "Undo" : confirmingRemember ? "OK" : "Got");
             auto.setText(WordState.getInstance().autoSpeak ? "Auto" : "Off");
             remembered.setToolTipText(null);
+            favorite.setText(sentenceMode || empty || !WordService.getInstance().currentFavorite() ? "Fav" : "Unfav");
+            favorite.setToolTipText(null);
+            favorite.setVisible(!empty && !sentenceMode);
             previous.setVisible(!empty);
             next.setVisible(!empty);
             remembered.setVisible(!empty && !sentenceMode);
             copy.setVisible(!empty);
             progress.setText(store.currentNumber() + "/" + store.size());
             word.setVisible(true);
+            word.setTokenHighlightEnabled(sentenceMode && !empty);
             chinese.setVisible(!empty && display != WordState.ENGLISH);
             float align = sentenceMode ? Component.LEFT_ALIGNMENT : Component.CENTER_ALIGNMENT;
             word.setAlignmentX(align);
@@ -258,8 +282,8 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             word.setHorizontalAlignment(horizontal);
             chinese.setHorizontalAlignment(horizontal);
             if (empty) {
-                word.setText(sentenceMode ? "添加句子" : "添加词表");
-                word.setToolTipText("打开 RWord 设置");
+                word.setText(sentenceMode ? "Add sentences" : "Add words");
+                word.setToolTipText("Open RWord settings");
             } else {
                 word.setText(entry.word);
                 word.setToolTipText(null);
@@ -302,6 +326,14 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             scroller.setMinimumSize(new Dimension(Math.min(width, JBUI.scale(120)), height));
         }
 
+        private void toggleFavorite() {
+            if (WordState.getInstance().reading == WordState.SENTENCES) {
+                return;
+            }
+            WordService.getInstance().toggleFavorite();
+            refreshAll();
+        }
+
         private void copyEnglish() {
             Entry entry = WordService.getInstance().store().current();
             if (entry == null || entry.word == null || entry.word.isBlank()) {
@@ -338,6 +370,22 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             }
         }
 
+        private void clickWord(MouseEvent event) {
+            if (dragged) {
+                return;
+            }
+            if (WordState.getInstance().reading != WordState.SENTENCES) {
+                speakCurrent();
+                return;
+            }
+            String token = word.tokenAt(event.getX(), event.getY());
+            if (token == null) {
+                speakCurrent();
+            } else {
+                CopyPasteManager.getInstance().setContents(new StringSelection(token));
+            }
+        }
+
         private void toggleAuto() {
             WordState state = WordState.getInstance();
             state.autoSpeak = !state.autoSpeak;
@@ -345,9 +393,12 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
         }
 
         private void speak() {
-            if (dragged) {
-                return;
+            if (!dragged) {
+                speakCurrent();
             }
+        }
+
+        private void speakCurrent() {
             Entry entry = WordService.getInstance().store().current();
             if (entry == null) {
                 RiderWordConfigurable.open();
@@ -355,7 +406,7 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
             }
             if (!Speaker.supported()) {
                 com.intellij.openapi.ui.Messages.showInfoMessage(project,
-                        "当前系统暂不支持发音，上一个和下一个仍可使用。", "RWord");
+                        "Speech is not available on this system. Previous and next still work.", "RWord");
                 return;
             }
             Speaker.speak(entry.word);
@@ -395,25 +446,27 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
         private void bindScroll(JComponent target) {
             MouseAdapter drag = new MouseAdapter() {
                 private int originX;
+                private int originY;
                 private int origin;
 
                 @Override
                 public void mousePressed(MouseEvent e) {
                     dragged = false;
                     originX = e.getXOnScreen();
+                    originY = e.getYOnScreen();
                     origin = scroller.getHorizontalScrollBar().getValue();
                 }
 
                 @Override
                 public void mouseDragged(MouseEvent e) {
-                    if (!overflows()) {
-                        return;
-                    }
                     int dx = e.getXOnScreen() - originX;
-                    if (Math.abs(dx) > 3) {
+                    if (Math.abs(dx) > 3 || Math.abs(e.getYOnScreen() - originY) > 3) {
                         dragged = true;
+                        word.clearHover();
                     }
-                    scroller.getHorizontalScrollBar().setValue(origin - dx);
+                    if (overflows()) {
+                        scroller.getHorizontalScrollBar().setValue(origin - dx);
+                    }
                 }
             };
             target.addMouseListener(drag);
@@ -432,6 +485,155 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
         private boolean overflows() {
             JScrollBar bar = scroller.getHorizontalScrollBar();
             return bar.getMaximum() - bar.getVisibleAmount() > 4;
+        }
+    }
+
+    public static final class SentenceWordLabel extends JLabel {
+        private static final Color TOKEN_HOVER = JBColor.namedColor("Editor.hoverHighlightColor",
+                new JBColor(new Color(0xDCEBFF), new Color(0x3A506B)));
+        private int hoverStart = -1;
+        private int hoverEnd = -1;
+        private boolean tokenHighlightEnabled;
+
+        public SentenceWordLabel() {
+            setToolTipText(null);
+            MouseAdapter hover = new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    updateHover(e.getX(), e.getY());
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    updateHover(e.getX(), e.getY());
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    clearHover();
+                }
+            };
+            addMouseListener(hover);
+            addMouseMotionListener(hover);
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            clearHover();
+        }
+
+        public void setTokenHighlightEnabled(boolean enabled) {
+            if (tokenHighlightEnabled != enabled) {
+                tokenHighlightEnabled = enabled;
+                if (!enabled) {
+                    clearHover();
+                } else {
+                    repaint();
+                }
+            }
+        }
+
+        public String tokenAt(int x, int y) {
+            Token token = tokenAtPoint(x, y);
+            return token == null ? null : token.text;
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            if (tokenHighlightEnabled && hoverStart >= 0) {
+                Token token = tokenAtRange(hoverStart, hoverEnd);
+                if (token != null) {
+                    Graphics2D highlight = (Graphics2D) graphics.create();
+                    highlight.setColor(TOKEN_HOVER);
+                    highlight.fillRoundRect(token.x - 1, token.y, token.width + 2, token.height,
+                            JBUI.scale(3), JBUI.scale(3));
+                    highlight.dispose();
+                }
+            }
+            super.paintComponent(graphics);
+        }
+
+        private void updateHover(int x, int y) {
+            Token token = tokenAtPoint(x, y);
+            int start = token == null ? -1 : token.start;
+            int end = token == null ? -1 : token.end;
+            if (start != hoverStart || end != hoverEnd) {
+                hoverStart = start;
+                hoverEnd = end;
+                repaint();
+            }
+        }
+
+        private void clearHover() {
+            if (hoverStart != -1 || hoverEnd != -1) {
+                hoverStart = -1;
+                hoverEnd = -1;
+                repaint();
+            }
+        }
+
+        private Token tokenAtPoint(int x, int y) {
+            String text = getText();
+            if (!tokenHighlightEnabled || text == null || text.isEmpty() || !contains(x, y)) {
+                return null;
+            }
+            FontMetrics metrics = getFontMetrics(getFont());
+            int originX = textOriginX(metrics, text);
+            int originY = textOriginY(metrics);
+            if (y < originY || y >= originY + metrics.getHeight()) {
+                return null;
+            }
+            Matcher matcher = WORD_PATTERN.matcher(text);
+            while (matcher.find()) {
+                int tokenX = originX + metrics.stringWidth(text.substring(0, matcher.start()));
+                int tokenWidth = metrics.stringWidth(matcher.group());
+                if (x >= tokenX && x < tokenX + tokenWidth) {
+                    return new Token(matcher.start(), matcher.end(), matcher.group(), tokenX, originY,
+                            tokenWidth, metrics.getHeight());
+                }
+            }
+            return null;
+        }
+
+        private Token tokenAtRange(int start, int end) {
+            String text = getText();
+            if (text == null || start < 0 || end > text.length()) {
+                return null;
+            }
+            FontMetrics metrics = getFontMetrics(getFont());
+            int originX = textOriginX(metrics, text);
+            int originY = textOriginY(metrics);
+            String tokenText = text.substring(start, end);
+            int tokenX = originX + metrics.stringWidth(text.substring(0, start));
+            return new Token(start, end, tokenText, tokenX, originY,
+                    metrics.stringWidth(tokenText), metrics.getHeight());
+        }
+
+        private int textOriginX(FontMetrics metrics, String text) {
+            int left = getInsets().left;
+            int right = getWidth() - getInsets().right;
+            int textWidth = metrics.stringWidth(text);
+            int free = Math.max(0, right - left - textWidth);
+            return switch (getHorizontalAlignment()) {
+                case CENTER -> left + free / 2;
+                case RIGHT -> left + free;
+                default -> left;
+            };
+        }
+
+        private int textOriginY(FontMetrics metrics) {
+            int top = getInsets().top;
+            int bottom = getHeight() - getInsets().bottom;
+            int free = Math.max(0, bottom - top - metrics.getHeight());
+            return switch (getVerticalAlignment()) {
+                case TOP -> top;
+                case BOTTOM -> top + free;
+                default -> top + free / 2;
+            };
+        }
+
+        private record Token(int start, int end, String text, int x, int y, int width, int height) {
         }
     }
 

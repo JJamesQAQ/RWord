@@ -22,7 +22,7 @@ public final class RiderWordConfigurable implements Configurable {
         WordState state = WordState.getInstance();
         ParseResult parsed = new WordListParser().parse(state.wordList);
         ParseResult sentences = new SentenceParser().parse(state.sentenceList);
-        panel.load(state.wordList, state.rememberedList, state.random, parsed.entries.size(), parsed.skipped,
+        panel.load(state.wordList, state.rememberedList, state.favoriteList, state.random, parsed.entries.size(), parsed.skipped,
                 state.sentenceList, sentences.entries.size(), sentences.skipped);
         return panel.component();
     }
@@ -34,6 +34,7 @@ public final class RiderWordConfigurable implements Configurable {
                 && (!panel.wordList().equals(state.wordList)
                 || !panel.sentenceList().equals(state.sentenceList)
                 || !panel.rememberedList().equals(state.rememberedList)
+                || !panel.favoriteList().equals(state.favoriteList)
                 || panel.randomSelected() != state.random);
     }
 
@@ -51,6 +52,7 @@ public final class RiderWordConfigurable implements Configurable {
         state.wordList = edited;
         state.sentenceList = editedSentences;
         state.rememberedList = panel.rememberedList();
+        state.favoriteList = panel.favoriteList();
         state.random = panel.randomSelected();
         WordService.getInstance().reload();
         panel.showSummary(WordService.getInstance().wordStore().size(), WordService.getInstance().wordStore().skipped());
@@ -65,7 +67,7 @@ public final class RiderWordConfigurable implements Configurable {
             WordState state = WordState.getInstance();
             ParseResult parsed = new WordListParser().parse(state.wordList);
             ParseResult sentences = new SentenceParser().parse(state.sentenceList);
-            panel.load(state.wordList, state.rememberedList, state.random, parsed.entries.size(), parsed.skipped,
+            panel.load(state.wordList, state.rememberedList, state.favoriteList, state.random, parsed.entries.size(), parsed.skipped,
                     state.sentenceList, sentences.entries.size(), sentences.skipped);
         }
     }

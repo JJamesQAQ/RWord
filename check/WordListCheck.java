@@ -2,17 +2,20 @@ import com.riderword.plugin.AutoSpeak;
 import com.riderword.plugin.Entry;
 import com.riderword.plugin.RememberConfirmation;
 import com.riderword.plugin.RiderWordWidget;
+import com.riderword.plugin.RiderWordWidget.SentenceWordLabel;
+import com.riderword.plugin.WordService;
 import com.riderword.plugin.WordState;
 import com.riderword.plugin.ParseResult;
 import com.riderword.plugin.ReviewHistory;
 import com.riderword.plugin.SentenceParser;
 import com.riderword.plugin.WordListParser;
 import com.riderword.plugin.WordStore;
+import javax.swing.SwingUtilities;
 
 /** Standalone check for the word list rules. Run with the plugin classes on the classpath. */
 public final class WordListCheck {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         ParseResult parsed = new WordListParser().parse("""
                 decay\t腐烂；衰退
                 \s
@@ -207,7 +210,40 @@ public final class WordListCheck {
         sentenceStore.load(sentences.entries, sentences.skipped, false, 1L, sentences.entries.get(3).key());
         check(sentenceStore.current().chinese.startsWith("Robotaxi"), "a saved sentence key reopens on that sentence");
 
-        System.out.println("All checks passed (parser, navigation, remembered words, progress, confirmation, undo history, sentences).");
+        Entry decay = new Entry("decay", "腐烂；衰退");
+        String favorites = WordService.toggleFavorite("", decay);
+        check(favorites.equals("decay | 腐烂；衰退"), "favorite stores the current word");
+        check(WordService.favoriteContains(favorites, "decay"), "favorite finds the stored word");
+        String appended = WordService.toggleFavorite("abstraction | 抽象", decay);
+        check(appended.equals("abstraction | 抽象\ndecay | 腐烂；衰退"), "favorite appends without dropping the word list");
+        check(WordService.toggleFavorite(appended, new Entry("Decay", "别的释义")).equals("abstraction | 抽象"),
+                "favorite again removes the same English key");
+        check(WordService.toggleFavorite("abstraction | 抽象", null).equals("abstraction | 抽象"),
+                "no current word leaves the favorite list");
+        check(!WordService.favoriteContains(null, "decay"), "a missing favorite list is empty");
+
+        SwingUtilities.invokeAndWait(WordListCheck::checkSentenceWordHits);
+
+        System.out.println("All checks passed (parser, navigation, remembered words, progress, confirmation, undo history, sentences, sentence word hits).");
+    }
+
+    private static void checkSentenceWordHits() {
+        SentenceWordLabel label = new SentenceWordLabel();
+        label.setTokenHighlightEnabled(true);
+        label.setText("Don't stop well-known words.");
+        label.setSize(label.getPreferredSize());
+        javax.swing.JLabel metrics = new javax.swing.JLabel(label.getText());
+        metrics.setFont(label.getFont());
+        java.awt.FontMetrics fontMetrics = metrics.getFontMetrics(metrics.getFont());
+        int knownX = fontMetrics.stringWidth("Don't stop ") + fontMetrics.stringWidth("well") / 2;
+        int baselineY = (label.getHeight() - fontMetrics.getHeight()) / 2 + fontMetrics.getAscent() / 2;
+        check("well-known".equals(label.tokenAt(knownX, baselineY)), "sentence hover finds the compound word");
+        int gapX = fontMetrics.stringWidth("Don't stop") + fontMetrics.stringWidth(" ") / 2;
+        check(label.tokenAt(gapX, baselineY) == null, "sentence whitespace speaks the sentence");
+        int punctuationX = fontMetrics.stringWidth("Don't stop well-known words") + fontMetrics.stringWidth(".") / 2;
+        check(label.tokenAt(punctuationX, baselineY) == null, "sentence punctuation speaks the sentence");
+        label.setTokenHighlightEnabled(false);
+        check(label.tokenAt(knownX, baselineY) == null, "word mode does not copy from the label");
     }
 
     private static void check(boolean condition, String message) {

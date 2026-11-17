@@ -23,6 +23,7 @@ public final class WordState implements PersistentStateComponent<WordState> {
 
     public String wordList = "";
     public String rememberedList = "";
+    public String favoriteList = "";
     public String sentenceList = "";
     public int displayMode = BOTH;
     public int reading = WORDS;

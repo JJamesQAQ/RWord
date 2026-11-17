@@ -3,6 +3,9 @@ package com.riderword.plugin;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** Holds the word list and the sentence list shared by every open project. */
 @Service(Service.Level.APP)
 public final class WordService {
@@ -36,8 +39,51 @@ public final class WordService {
         ParseResult parsed = new WordListParser().parse(state.wordList);
         words.load(parsed.entries, parsed.skipped, state.random, state.seed, state.currentKey);
         ParseResult sentenceParsed = new SentenceParser().parse(state.sentenceList);
+        // Sentences ignore the word-list browse radio and stay in pasted order.
         sentences.load(sentenceParsed.entries, sentenceParsed.skipped, false, 1L, state.sentenceKey);
         remember();
+    }
+
+    /** The word stays in the list. A second click on the same English key removes the copy. */
+    public void toggleFavorite() {
+        WordState state = WordState.getInstance();
+        state.favoriteList = toggleFavorite(state.favoriteList, words.current());
+    }
+
+    public boolean currentFavorite() {
+        Entry current = words.current();
+        return current != null && favoriteContains(WordState.getInstance().favoriteList, current.key());
+    }
+
+    public static String toggleFavorite(String favoriteList, Entry current) {
+        if (current == null) {
+            return favoriteList == null ? "" : favoriteList;
+        }
+        List<Entry> kept = new ArrayList<>();
+        boolean present = false;
+        for (Entry entry : new WordListParser().parse(favoriteList).entries) {
+            if (entry.key().equals(current.key())) {
+                present = true;
+            } else {
+                kept.add(entry);
+            }
+        }
+        if (!present) {
+            kept.add(current);
+        }
+        return WordListParser.format(kept);
+    }
+
+    public static boolean favoriteContains(String favoriteList, String key) {
+        if (key == null) {
+            return false;
+        }
+        for (Entry entry : new WordListParser().parse(favoriteList).entries) {
+            if (entry.key().equals(key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Moves the current word into the remembered list and shows the next one. */
