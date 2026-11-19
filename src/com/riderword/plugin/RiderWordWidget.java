@@ -383,6 +383,7 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
                 speakCurrent();
             } else {
                 CopyPasteManager.getInstance().setContents(new StringSelection(token));
+                Speaker.speak(token);
             }
         }
 
