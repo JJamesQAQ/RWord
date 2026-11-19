@@ -18,7 +18,7 @@ RWord helps you review a personal vocabulary list without leaving Rider.
 - Review remembered words in Settings and copy them whenever needed.
 - Press previous to revisit a remembered word and use `Undo` to restore it to the active list.
 - Choose sequential or stable random browsing for words.
-- Switch to sentences from the leftmost status-bar control. Paste English above Chinese, with a blank line between pairs. Sentence mode hides Got, stays in pasted order, and scrolls a line that does not fit.
+- Switch to sentences from the leftmost status-bar control. The RWord settings page has separate word and sentence tabs. Paste sentence content, confirm recognition, then review, edit, delete, or add sentence pairs; blank lines between pairs are optional. Sentence mode hides Got, stays in pasted order, and scrolls a line that does not fit.
 
 ### Privacy
 
@@ -33,7 +33,7 @@ decay | 衰退；腐烂
 abstraction\t抽象
 ```
 
-A sentence pair is one or more English lines, then the Chinese lines, then a blank line:
+A sentence pair is one or more English lines followed by Chinese lines. Blank lines are optional; after Chinese has started, a following Latin-only line starts the next pair:
 
 ```text
 Tesla self-driving now approved in Finland

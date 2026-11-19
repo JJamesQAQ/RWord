@@ -11,7 +11,7 @@ import com.riderword.plugin.SentenceParser;
 import com.riderword.plugin.WordListParser;
 import com.riderword.plugin.WordStore;
 import javax.swing.SwingUtilities;
-
+import java.util.List;
 /** Standalone check for the word list rules. Run with the plugin classes on the classpath. */
 public final class WordListCheck {
 
@@ -199,9 +199,37 @@ public final class WordListCheck {
         check(sentences.entries.get(2).word.endsWith("❤️"), "keeps an emoji on the English line");
         check(sentences.entries.get(3).chinese.equals("Robotaxi 每周运行 168 小时。"),
                 "a Han character starts the Chinese half");
-        check(new SentenceParser().parse(null).entries.isEmpty(), "null sentence list is empty");
-        check(new SentenceParser().parse("\n\n").entries.isEmpty(), "blank sentence list is empty");
+        ParseResult adjacentPairs = new SentenceParser().parse("""
+                Definitely not 😂
+                当然不是 😂
+                I’m of the view that you can do what you want, so long as it doesn’t materially harm others.
+                我的看法是，你可以做自己想做的事，只要不会对他人造成实质性伤害。
+                """);
+        check(adjacentPairs.entries.size() == 2, "recognizes adjacent sentence pairs without blank lines");
+        check(adjacentPairs.entries.get(0).word.equals("Definitely not 😂"), "keeps the first adjacent sentence");
+        check(adjacentPairs.entries.get(1).word.startsWith("I’m of the view"), "starts the next sentence after Chinese");
 
+        ParseResult groupedLines = new SentenceParser().parse("""
+                It was the smartest of times
+                It was the dumbest of times
+                这是最聪明的时代
+                这是最愚蠢的时代
+                """);
+        check(groupedLines.entries.size() == 1, "keeps consecutive English and Chinese lines together");
+        check(groupedLines.entries.get(0).word.equals("It was the smartest of times It was the dumbest of times"),
+                "joins multiple English lines in one sentence");
+        check(groupedLines.entries.get(0).chinese.equals("这是最聪明的时代 这是最愚蠢的时代"),
+                "joins multiple Chinese lines in one sentence");
+
+        List<SentenceParser.Draft> incomplete = new SentenceParser().parseDrafts("""
+                Only English
+
+                只有中文
+                """);
+        check(incomplete.size() == 2, "keeps incomplete sentence rows for editing");
+        check(incomplete.get(0).chinese().isEmpty(), "keeps an English-only row");
+        check(incomplete.get(1).english().isEmpty(), "keeps a Chinese-only row");
+        check(SentenceParser.formatDrafts(incomplete).contains("Only English"), "formats editable rows");
         WordStore sentenceStore = new WordStore();
         sentenceStore.load(sentences.entries, sentences.skipped, false, 1L, null);
         check(sentenceStore.current().word.startsWith("In order to"), "sentences stay in pasted order");

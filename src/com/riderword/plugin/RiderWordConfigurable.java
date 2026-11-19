@@ -23,7 +23,8 @@ public final class RiderWordConfigurable implements Configurable {
         ParseResult parsed = new WordListParser().parse(state.wordList);
         ParseResult sentences = new SentenceParser().parse(state.sentenceList);
         panel.load(state.wordList, state.rememberedList, state.favoriteList, state.random, parsed.entries.size(), parsed.skipped,
-                state.sentenceList, sentences.entries.size(), sentences.skipped);
+                state.sentenceList, sentences.entries.size(), sentences.skipped,
+                state.reading == WordState.SENTENCES);
         return panel.component();
     }
 
@@ -68,7 +69,8 @@ public final class RiderWordConfigurable implements Configurable {
             ParseResult parsed = new WordListParser().parse(state.wordList);
             ParseResult sentences = new SentenceParser().parse(state.sentenceList);
             panel.load(state.wordList, state.rememberedList, state.favoriteList, state.random, parsed.entries.size(), parsed.skipped,
-                    state.sentenceList, sentences.entries.size(), sentences.skipped);
+                    state.sentenceList, sentences.entries.size(), sentences.skipped,
+                    state.reading == WordState.SENTENCES);
         }
     }
 

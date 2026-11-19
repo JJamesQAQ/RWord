@@ -119,6 +119,8 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
         private final JLabel reading = clickable("Word", false, e -> toggleReading());
         private final JLabel previous = clickable("‹", true, e -> step(-1));
         private final SentenceWordLabel word = new SentenceWordLabel();
+        private final Font normalWordFont = word.getFont();
+        private final Font emphasizedWordFont = normalWordFont.deriveFont(Font.BOLD, normalWordFont.getSize2D() + 2f);
         private final JLabel chinese = new JLabel();
         private final JLabel next = clickable("›", true, e -> step(1));
         private final JLabel mode = clickable("EN+", false, e -> cycleMode());
@@ -136,7 +138,7 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
         WidgetComponent() {
             setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
             setOpaque(false);
-            word.setFont(word.getFont().deriveFont(Font.BOLD, word.getFont().getSize2D() + 2f));
+            word.setFont(emphasizedWordFont);
             chinese.setForeground(JBColor.GRAY);
             progress.setForeground(JBColor.GRAY);
             onClick(word, this::clickWord);
@@ -249,6 +251,7 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
         void refresh() {
             boolean sentenceMode = WordState.getInstance().reading == WordState.SENTENCES;
             WordStore store = WordService.getInstance().store();
+            word.setFont(sentenceMode ? normalWordFont : emphasizedWordFont);
             Entry entry = store.current();
             boolean empty = entry == null;
             boolean reviewingRemembered = store.isCurrentRemembered();
@@ -490,8 +493,8 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
     }
 
     public static final class SentenceWordLabel extends JLabel {
-        private static final Color TOKEN_HOVER = JBColor.namedColor("Editor.hoverHighlightColor",
-                new JBColor(new Color(0xDCEBFF), new Color(0x3A506B)));
+        private static final Color TOKEN_HOVER = new JBColor(
+                new Color(0x8A949E), new Color(0x89939E));
         private int hoverStart = -1;
         private int hoverEnd = -1;
         private boolean tokenHighlightEnabled;
@@ -542,17 +545,17 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
 
         @Override
         protected void paintComponent(Graphics graphics) {
+            super.paintComponent(graphics);
             if (tokenHighlightEnabled && hoverStart >= 0) {
                 Token token = tokenAtRange(hoverStart, hoverEnd);
                 if (token != null) {
                     Graphics2D highlight = (Graphics2D) graphics.create();
                     highlight.setColor(TOKEN_HOVER);
-                    highlight.fillRoundRect(token.x - 1, token.y, token.width + 2, token.height,
-                            JBUI.scale(3), JBUI.scale(3));
+                    highlight.drawLine(token.x, token.y + token.height - 1,
+                            token.x + token.width - 1, token.y + token.height - 1);
                     highlight.dispose();
                 }
             }
-            super.paintComponent(graphics);
         }
 
         private void updateHover(int x, int y) {
