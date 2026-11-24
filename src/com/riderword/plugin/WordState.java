@@ -28,6 +28,9 @@ public final class WordState implements PersistentStateComponent<WordState> {
     public int displayMode = BOTH;
     public int reading = WORDS;
     public boolean random = false;
+    public boolean youdaoSpeech = false;
+    public String youdaoAppKey = "";
+    public String youdaoAppSecret = "";
     public boolean autoSpeak = true;
     public long seed = 0L;
     public String currentKey = "";

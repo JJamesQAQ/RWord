@@ -10,6 +10,7 @@ import com.riderword.plugin.ReviewHistory;
 import com.riderword.plugin.SentenceParser;
 import com.riderword.plugin.WordListParser;
 import com.riderword.plugin.WordStore;
+import com.riderword.plugin.YoudaoSpeech;
 import javax.swing.SwingUtilities;
 import java.util.List;
 /** Standalone check for the word list rules. Run with the plugin classes on the classpath. */
@@ -165,6 +166,18 @@ public final class WordListCheck {
         check(!AutoSpeak.shouldSpeak(false, "one", "two"), "the switch can disable auto speech");
         check(!AutoSpeak.shouldSpeak(true, "one", "one"), "the same word is not spoken again");
         check(!AutoSpeak.shouldSpeak(true, "", ""), "an empty list does not auto speak");
+        String signature = YoudaoSpeech.signature("app", "good", "salt", "100", "secret");
+        check(signature.equals(YoudaoSpeech.signature("app", "good", "salt", "100", "secret")),
+                "Youdao signs the same request consistently");
+        check(YoudaoSpeech.input("abcdefghijklmnopqrstu").equals("abcdefghij21lmnopqrstu"),
+                "Youdao truncates text longer than twenty characters");
+        check(YoudaoSpeech.requestBody("good", "app", "secret", "salt", "100").contains("from=en&to=zh-CHS"),
+                "Youdao requests English speech");
+        check(YoudaoSpeech.speakUrl("{\"errorCode\":\"0\",\"speakUrl\":\"https:\\/\\/example.test\\/a.mp3\"}")
+                .equals("https://example.test/a.mp3"), "Youdao speech URL is extracted");
+        check(YoudaoSpeech.speakUrl("{\"errorCode\":\"110\"}").isEmpty(), "a failed Youdao response stays silent");
+        check(YoudaoSpeech.cacheKey("Illusion").equals(YoudaoSpeech.cacheKey(" illusion ")),
+                "the same word reuses one cached pronunciation");
 
         ParseResult sentences = new SentenceParser().parse("""
                 In order to work through more of the Cybertruck order backlog, production will be extended through the end of summer 2027

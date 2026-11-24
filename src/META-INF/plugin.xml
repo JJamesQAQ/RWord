@@ -9,7 +9,7 @@
         <ul>
             <li>Previous and next, with the current position shown as 3/48.</li>
             <li>The leftmost control switches between words and sentences. Sentence mode hides Got. A long line scrolls by dragging or the mouse wheel.</li>
-            <li>Click the English word to hear it. On Windows, an en-US voice is used when available.</li>
+            <li>Click the English word to hear it. On Windows, an en-US voice is used when available. Choose 有道云 in Settings and enter your Youdao app ID and secret to use Youdao speech; a failed request stays silent.</li>
             <li>Auto reads the word when you go to the previous or next one. Turn it off with the Auto switch.</li>
             <li>EN+ shows English and Chinese; EN shows English only.</li>
             <li>Got asks for confirmation, then moves the word to a copyable remembered list. Previous can bring it back with Undo.</li>

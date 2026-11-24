@@ -22,7 +22,9 @@ public final class RiderWordConfigurable implements Configurable {
         WordState state = WordState.getInstance();
         ParseResult parsed = new WordListParser().parse(state.wordList);
         ParseResult sentences = new SentenceParser().parse(state.sentenceList);
-        panel.load(state.wordList, state.rememberedList, state.favoriteList, state.random, parsed.entries.size(), parsed.skipped,
+        panel.load(state.wordList, state.rememberedList, state.favoriteList, state.random,
+                state.youdaoSpeech, state.youdaoAppKey, state.youdaoAppSecret,
+                parsed.entries.size(), parsed.skipped,
                 state.sentenceList, sentences.entries.size(), sentences.skipped,
                 state.reading == WordState.SENTENCES);
         return panel.component();
@@ -36,7 +38,10 @@ public final class RiderWordConfigurable implements Configurable {
                 || !panel.sentenceList().equals(state.sentenceList)
                 || !panel.rememberedList().equals(state.rememberedList)
                 || !panel.favoriteList().equals(state.favoriteList)
-                || panel.randomSelected() != state.random);
+                || panel.randomSelected() != state.random
+                || panel.youdaoSelected() != state.youdaoSpeech
+                || !panel.youdaoAppKey().equals(state.youdaoAppKey)
+                || !panel.youdaoAppSecret().equals(state.youdaoAppSecret));
     }
 
     @Override
@@ -55,6 +60,9 @@ public final class RiderWordConfigurable implements Configurable {
         state.rememberedList = panel.rememberedList();
         state.favoriteList = panel.favoriteList();
         state.random = panel.randomSelected();
+        state.youdaoSpeech = panel.youdaoSelected();
+        state.youdaoAppKey = panel.youdaoAppKey();
+        state.youdaoAppSecret = panel.youdaoAppSecret();
         WordService.getInstance().reload();
         panel.showSummary(WordService.getInstance().wordStore().size(), WordService.getInstance().wordStore().skipped());
         panel.showSentenceSummary(WordService.getInstance().sentenceStore().size(),
@@ -68,7 +76,9 @@ public final class RiderWordConfigurable implements Configurable {
             WordState state = WordState.getInstance();
             ParseResult parsed = new WordListParser().parse(state.wordList);
             ParseResult sentences = new SentenceParser().parse(state.sentenceList);
-            panel.load(state.wordList, state.rememberedList, state.favoriteList, state.random, parsed.entries.size(), parsed.skipped,
+            panel.load(state.wordList, state.rememberedList, state.favoriteList, state.random,
+                    state.youdaoSpeech, state.youdaoAppKey, state.youdaoAppSecret,
+                    parsed.entries.size(), parsed.skipped,
                     state.sentenceList, sentences.entries.size(), sentences.skipped,
                     state.reading == WordState.SENTENCES);
         }

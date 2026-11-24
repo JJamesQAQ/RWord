@@ -4,7 +4,10 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBCheckBox;
+import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.JBTextArea;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.FormBuilder;
 
 import javax.swing.BorderFactory;
@@ -39,6 +42,9 @@ public final class SettingsPanel {
     private final JBLabel sentenceSummary = new JBLabel(" ");
     private final JBRadioButton sequential = new JBRadioButton("按词表顺序");
     private final JBRadioButton random = new JBRadioButton("随机顺序");
+    private final JBCheckBox youdao = new JBCheckBox("有道云");
+    private final JBTextField youdaoAppKey = new JBTextField();
+    private final JBPasswordField youdaoAppSecret = new JBPasswordField();
     private final JPanel sentenceRows = new JPanel();
     private final List<SentenceRow> rows = new ArrayList<>();
     private final CardLayout cards = new CardLayout();
@@ -111,6 +117,9 @@ public final class SettingsPanel {
         modes.add(random, BorderLayout.CENTER);
 
         return FormBuilder.createFormBuilder()
+                .addComponent(youdao)
+                .addLabeledComponent("应用 ID", youdaoAppKey)
+                .addLabeledComponent("应用密钥", youdaoAppSecret)
                 .addComponent(new JBLabel("词表（每行：英文 + Tab 或 | + 中文）"))
                 .addComponentFillVertically(new JBScrollPane(words), 0)
                 .addComponent(summary)
@@ -151,6 +160,7 @@ public final class SettingsPanel {
     }
 
     public void load(String wordList, String rememberedList, String favoriteList, boolean randomMode,
+                     boolean youdaoMode, String appKey, String appSecret,
                      int count, int skipped, String sentenceList, int sentenceCount, int sentenceSkipped,
                      boolean sentenceMode) {
         words.setText(wordList == null ? "" : wordList);
@@ -162,6 +172,9 @@ public final class SettingsPanel {
         remembered.setText(rememberedList == null ? "" : rememberedList);
         favorites.setText(favoriteList == null ? "" : favoriteList);
         (randomMode ? random : sequential).setSelected(true);
+        youdao.setSelected(youdaoMode);
+        youdaoAppKey.setText(appKey == null ? "" : appKey);
+        youdaoAppSecret.setText(appSecret == null ? "" : appSecret);
         replaceRows(new SentenceParser().parseDrafts(sentenceList));
         rowsEdited = false;
         showSummary(count, skipped);
@@ -194,6 +207,18 @@ public final class SettingsPanel {
 
     public boolean randomSelected() {
         return random.isSelected();
+    }
+
+    public boolean youdaoSelected() {
+        return youdao.isSelected();
+    }
+
+    public String youdaoAppKey() {
+        return youdaoAppKey.getText().strip();
+    }
+
+    public String youdaoAppSecret() {
+        return new String(youdaoAppSecret.getPassword()).strip();
     }
 
     public void showSummary(int count, int skipped) {

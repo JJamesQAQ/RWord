@@ -378,7 +378,15 @@ public final class RiderWordWidget implements StatusBarWidget, StatusBarWidget.M
                 return;
             }
             if (WordState.getInstance().reading != WordState.SENTENCES) {
-                speakCurrent();
+                Entry entry = WordService.getInstance().store().current();
+                if (entry == null) {
+                    RiderWordConfigurable.open();
+                } else if (!Speaker.supported()) {
+                    com.intellij.openapi.ui.Messages.showInfoMessage(project,
+                            "Speech is not available on this system. Previous and next still work.", "RWord");
+                } else {
+                    Speaker.replay(entry.word);
+                }
                 return;
             }
             String token = word.tokenAt(event.getX(), event.getY());
