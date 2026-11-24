@@ -48,6 +48,7 @@ public final class SettingsPanel {
     private final JPanel root = new JPanel(new BorderLayout(0, 8));
     private String initialSentenceInput = "";
     private boolean rowsEdited;
+    private boolean loading;
 
     public SettingsPanel() {
         configureTextAreas();
@@ -63,7 +64,23 @@ public final class SettingsPanel {
         words.getEmptyText().setText("每行一个词：英文<Tab或|>中文，例如 decay\t腐烂；衰退");
         sentenceInput.setLineWrap(true);
         sentenceInput.setWrapStyleWord(true);
-        sentenceInput.getEmptyText().setText("直接粘贴英文和中文句子，点击“确认并识别”");
+        sentenceInput.getEmptyText().setText("直接粘贴英文和中文句子，内容会自动识别");
+        sentenceInput.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                syncSentenceRows();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                syncSentenceRows();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                syncSentenceRows();
+            }
+        });
         remembered.setLineWrap(true);
         remembered.getEmptyText().setText("点状态栏的“已记住”后，单词会出现在这里，可以直接复制");
         favorites.setLineWrap(true);
@@ -106,13 +123,6 @@ public final class SettingsPanel {
     }
 
     private JPanel sentencePanel() {
-        JButton confirm = new JButton("确认并识别");
-        confirm.addActionListener(e -> recognizeSentences());
-
-        JPanel inputHeader = new JPanel(new BorderLayout(8, 0));
-        inputHeader.add(new JBLabel("粘贴句子内容"), BorderLayout.WEST);
-        inputHeader.add(confirm, BorderLayout.EAST);
-
         JScrollPane inputScroll = new JBScrollPane(sentenceInput);
         inputScroll.setPreferredSize(new Dimension(600, 190));
 
@@ -124,7 +134,7 @@ public final class SettingsPanel {
 
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        top.add(inputHeader);
+        top.add(new JBLabel("粘贴句子内容（自动识别）"));
         top.add(Box.createVerticalStrut(4));
         top.add(inputScroll);
         top.add(Box.createVerticalStrut(8));
@@ -144,7 +154,9 @@ public final class SettingsPanel {
                      int count, int skipped, String sentenceList, int sentenceCount, int sentenceSkipped,
                      boolean sentenceMode) {
         words.setText(wordList == null ? "" : wordList);
+        loading = true;
         sentenceInput.setText(sentenceList == null ? "" : sentenceList);
+        loading = false;
         initialSentenceInput = sentenceInput.getText();
         rowsEdited = false;
         remembered.setText(rememberedList == null ? "" : rememberedList);
@@ -201,7 +213,10 @@ public final class SettingsPanel {
         cards.show(cardPanel, sentence ? SENTENCE_CARD : WORD_CARD);
     }
 
-    private void recognizeSentences() {
+    private void syncSentenceRows() {
+        if (loading) {
+            return;
+        }
         List<SentenceParser.Draft> drafts = new SentenceParser().parseDrafts(sentenceInput.getText());
         replaceRows(drafts);
         rowsEdited = true;
